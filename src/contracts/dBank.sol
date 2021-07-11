@@ -5,70 +5,76 @@ import "./Token.sol";
 
 contract dBank {
 
-  //assign Token contract to variable
+	Token private tokenContract;
+    uint public interestRate = 3168808781;  // 1e17 (10% APY of 1ETH) / 31557600 (sec in 365.25 days)
 
-  //add mappings
+    mapping(address => bool) public hasDeposited;
+    mapping(address => uint) public depositStart;
+    mapping(address => uint) public etherBalanceOf;
 
-  //add events
+    event Deposit(address indexed user, uint amount, uint time);
+    event Withdraw(address indexed user, uint amount, uint time, uint interest);
+    event Borrow(uint amount);
+    event PayOff(uint amount);
 
-  //pass as constructor argument deployed Token contract
-  constructor() public {
-    //assign token deployed contract to variable
-  }
+	constructor(Token _tokenContract) {
+        tokenContract = _tokenContract;
+    }
 
-  function deposit() payable public {
-    //check if msg.sender didn't already deposited funds
-    //check if msg.value is >= than 0.01 ETH
+	function deposit() payable public {
+        require(!hasDeposited[msg.sender], "User already has an active deposit");
+		require(msg.value >= 10 ** 16, "The value must be greater then 0.01 ETH");
 
-    //increase msg.sender ether deposit balance
-    //start msg.sender hodling time
+		etherBalanceOf[msg.sender] =   msg.value;
+        hasDeposited[msg.sender] = true;
 
-    //set msg.sender deposit status to true
-    //emit Deposit event
-  }
+        depositStart[msg.sender] = block.timestamp;
 
-  function withdraw() public {
-    //check if msg.sender deposit status is true
-    //assign msg.sender ether deposit balance to variable for event
+        emit Deposit(msg.sender, msg.value, block.timestamp);
+	}
 
-    //check user's hodl time
+	function withdraw() public {
+		require(hasDeposited[msg.sender], "Did not make any deposits yet");
+		uint balance = etherBalanceOf[msg.sender];
 
-    //calc interest per second
-    //calc accrued interest
+		uint time = block.timestamp - depositStart[msg.sender];
+		uint interest = time * interestRate * etherBalanceOf[msg.sender] / 1e18;
 
-    //send eth to user
-    //send interest in tokens to user
+		msg.sender.transfer(balance);
+		tokenContract.mint(msg.sender, interest);
 
-    //reset depositer data
+        etherBalanceOf[msg.sender] = 0;
+        hasDeposited[msg.sender] = false;
+        depositStart[msg.sender] = 0;
 
-    //emit event
-  }
+		emit Withdraw(msg.sender, balance, block.timestamp, interest);
+	}
 
-  function borrow() payable public {
-    //check if collateral is >= than 0.01 ETH
-    //check if user doesn't have active loan
+	function borrow(uint _amount) payable public {
+		//check if collateral is >= than 0.01 ETH
+		//check if user doesn't have active loan
 
-    //add msg.value to ether collateral
+		//add msg.value to ether collateral
 
-    //calc tokens amount to mint, 50% of msg.value
+		//calc tokens amount to mint, 50% of msg.value
 
-    //mint&send tokens to user
+		//mint&send tokens to user
 
-    //activate borrower's loan status
+		//activate borrower's loan status
 
-    //emit event
-  }
+		//emit event
+	}
 
-  function payOff() public {
-    //check if loan is active
-    //transfer tokens from user back to the contract
+	function payOff(uint _amount) public {
+		//check if loan is active
+		//transfer tokens from user back to the contract
 
-    //calc fee
+		//calc fee
 
-    //send user's collateral minus fee
+		//send user's collateral minus fee
 
-    //reset borrower's data
+		//reset borrower's data
 
-    //emit event
-  }
+		//emit event
+	}
 }
